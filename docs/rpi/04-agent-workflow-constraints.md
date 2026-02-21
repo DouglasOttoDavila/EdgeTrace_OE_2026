@@ -61,6 +61,42 @@ At completion, return:
 - Keep retries minimal and deterministic.
 - Use `BASE_URL` from `.env` for browser navigation in Playwright flows; do not hardcode hosts in generated assets.
 
+## Known Failure Modes + Required Fallbacks
+
+1) Vibium selector syntax mismatch
+- Prefer plain CSS selectors for Vibium interaction tools.
+- Do not assume Playwright-only selector syntax (for example `:has-text(...)`) is supported by Vibium.
+- Fallback sequence:
+   1. discover candidates with `find_all` using broad CSS,
+   2. narrow by text/href via browser evaluate,
+   3. interact with the resolved CSS selector,
+   4. if unresolved, continue with Playwright-based reproduction and report `selector_syntax_mismatch`.
+
+2) Vibium click fails with event interception (for example `ReceivesEvents`)
+- Fallback sequence:
+   1. `scroll` target into view,
+   2. `hover` target,
+   3. retry `click` once,
+   4. if still blocked, perform evaluate-based click only to confirm intended destination,
+   5. validate behavior in generated Playwright test as source of truth for pass/fail.
+- Report this as a deterministic mismatch note, not an immediate case failure.
+
+3) Popup/new-tab inconsistency during Vibium reproduction
+- After CTA click, always verify both possibilities:
+   - same-tab navigation via current URL, and
+   - new-tab navigation via tab listing/switch.
+- If tab targeting appears stale in Vibium, confirm destination with URL inventory and proceed with Playwright popup-handling assertions.
+
+4) Host hardcoding risk
+- Mandatory preflight: verify `BASE_URL` exists before reproduction/generation.
+- Generated specs/page objects must use relative navigation paths and rely on Playwright `baseURL`.
+- If `BASE_URL` is missing, stop execution with `missing_base_url_configuration` and explicit next action.
+
+5) No existing generated assets for a case
+- This is expected for first-time case execution.
+- Agent must create missing page object/spec files instead of failing.
+- Mark outcome as normal generation, not as defect.
+
 ## MCP Tool Availability
 Use this fallback matrix when MCP tools are unavailable:
 

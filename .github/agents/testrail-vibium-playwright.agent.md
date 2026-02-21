@@ -36,6 +36,11 @@ If both are present, `caseIds` wins.
 - Do not log secrets or full raw payloads.
 - If MCP responses arrive in wrapped validation/error envelopes, normalize embedded data before deciding case failure.
 - Keep reporting payload-safe: include IDs, titles, statuses, and concise reasons only.
+- If no existing generated assets are present for a case, create them; do not treat as a failure.
+- Vibium selector fallback is mandatory: broad CSS discovery -> evaluate-based narrowing -> retry with resolved CSS selector.
+- If Vibium click fails due to event interception, run fallback: scroll -> hover -> click retry -> evaluate-click for diagnosis, then validate via Playwright.
+- For CTA/link actions, validate both same-tab and popup/new-tab outcomes.
+- If `BASE_URL` is missing, stop with a clear configuration action instead of attempting host hardcoding.
 
 ## Result format
 Return:

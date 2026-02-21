@@ -38,6 +38,25 @@ Responsive and duplicate-match rules:
 - Prefer deterministic helper methods in page objects (e.g., `clickFirstVisible`) over ad-hoc inline selector retries.
 - If a menu must be opened before a target option appears, model that as explicit POM steps before assertions.
 
+Vibium compatibility rules for reproduction:
+- Prefer plain CSS selectors when using Vibium interaction tools.
+- Do not assume Playwright-only selector patterns (for example `:has-text(...)`) are supported in Vibium selectors.
+- If selector syntax fails in Vibium, discover with broad CSS + evaluate filtering, then continue verification in Playwright.
+
+Click reliability fallback (Vibium -> Playwright):
+- If Vibium click fails due to event interception:
+  1. scroll into view,
+  2. hover,
+  3. retry click once,
+  4. if still blocked, use evaluate click only for diagnostic navigation confirmation,
+  5. assert behavior definitively in Playwright run.
+
+Popup/new-tab assertion rules:
+- For CTA interactions, generated tests must support both outcomes:
+  - popup/new-tab opened, or
+  - same-tab navigation.
+- Use deterministic popup wait with fallback URL assertion in the current page.
+
 ## Assertion Strategy
 - Assert at meaningful checkpoints tied to expected outcomes.
 - Keep assertions focused and stable.
@@ -65,6 +84,7 @@ Example:
 - Generated specs and page objects should navigate with relative paths (for example `page.goto('/')`), relying on configured `baseURL`.
 - Do not hardcode absolute hostnames (for example `http://localhost:3000`) in generated tests.
 - If `BASE_URL` is missing, report a clear configuration failure and required next action.
+- During reproduction, verify the active Vibium target host resolves from the same `BASE_URL` value before interaction begins.
 
 ## Error Handling
 - If generation succeeds but execution fails, keep files and mark case `failed` with reason.
