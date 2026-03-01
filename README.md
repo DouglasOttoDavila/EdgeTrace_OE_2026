@@ -177,10 +177,29 @@ caseId: C12346
 ### Package scripts
 From [package.json](package.json):
 - `npm run jira:testrail -- --jira-id <JIRA_ID>`
+- `npm run platform:dev`
+- `npm run platform:build`
+- `npm run platform:start`
+- `npm run platform:worker`
 - `npm test`
 - `npm run test:ui`
 - `npm run test:report`
 - `npm run test:debug`
+
+### Copilot SDK platform app
+- Path: `apps/copilot-platform`
+- Stack: Next.js + React + Tailwind + TypeScript + Copilot SDK package integration
+- Main API: `POST /api/jobs` and `GET /api/jobs`
+  - `generate_test_cases` payload: `{ "type": "generate_test_cases", "jiraId": "QAT-114" }`
+  - `generate_automation` payload: `{ "type": "generate_automation", "caseIds": ["C12345"] }`
+- Current implementation status:
+  - Reuses existing CLI Jira -> n8n flow via bridge
+  - Creates TestRail cases through API when credentials are configured (fallback mapping otherwise)
+  - Provides automation job orchestration with execution metrics/evidence indexing
+  - Executes workflow prompts directly through authenticated Copilot SDK sessions
+  - Persists job/event history to SQLite (`data/platform/jobs.db`)
+  - Streams live job updates through `/api/jobs/stream`
+  - Processes queued jobs through a dedicated worker process (`platform:worker`)
 
 ### Validate a generated case spec manually
 ```bash

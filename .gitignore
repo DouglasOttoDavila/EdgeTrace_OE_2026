@@ -2,3 +2,5 @@
 /.env.example
 /node_modules
 /.playwright-mcp
+apps/copilot-platform/node_modules
+apps/copilot-platform/.next

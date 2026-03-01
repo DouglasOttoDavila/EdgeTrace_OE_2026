@@ -7,7 +7,13 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "test:debug": "playwright test --debug",
-    "jira:testrail": "node src/jira-to-testrail/cli.js"
+    "jira:testrail": "node src/jira-to-testrail/cli.js",
+    "platform:dev": "npm --prefix apps/copilot-platform run dev",
+    "platform:build": "npm --prefix apps/copilot-platform run build",
+    "platform:start": "npm --prefix apps/copilot-platform run start",
+    "platform:worker": "npm --prefix apps/copilot-platform run worker",
+    "platform:clean:jobs": "npm --prefix apps/copilot-platform run clean:jobs",
+    "platform:clean:jobs:all": "npm --prefix apps/copilot-platform run clean:jobs:all"
   },
   "keywords": [],
   "author": "",

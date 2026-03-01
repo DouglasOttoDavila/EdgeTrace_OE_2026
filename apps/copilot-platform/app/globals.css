@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+@layer base {
+  body {
+    @apply min-h-screen text-slate-100 antialiased;
+    background:
+      radial-gradient(circle at 12% 16%, rgba(56, 189, 248, 0.2), transparent 38%),
+      radial-gradient(circle at 86% 12%, rgba(45, 212, 191, 0.12), transparent 36%),
+      radial-gradient(circle at 18% 78%, rgba(59, 130, 246, 0.16), transparent 34%),
+      linear-gradient(160deg, #020617 0%, #030712 48%, #020617 100%);
+    line-height: 1.6;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  body::before,
+  body::after {
+    content: "";
+    position: fixed;
+    pointer-events: none;
+    z-index: -1;
+    filter: blur(40px);
+  }
+
+  body::before {
+    inset: auto auto 16% 6%;
+    width: 22rem;
+    height: 22rem;
+    border-radius: 9999px;
+    background: rgba(14, 165, 233, 0.24);
+  }
+
+  body::after {
+    inset: 12% 4% auto auto;
+    width: 24rem;
+    height: 24rem;
+    border-radius: 9999px;
+    background: rgba(20, 184, 166, 0.16);
+  }
+
+  a {
+    @apply transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply rounded-3xl border border-white/20 bg-white/[0.08] backdrop-blur-xl shadow-glass;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.22),
+      0 25px 70px -36px rgba(2, 6, 23, 0.95);
+  }
+
+  .glass-subpanel {
+    @apply rounded-2xl border border-white/15 bg-slate-950/45 backdrop-blur-lg;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  .glass-chip {
+    @apply rounded-full border px-3 py-1 text-xs font-medium;
+  }
+
+  .glass-input {
+    @apply w-full rounded-xl border border-white/20 bg-slate-950/50 px-3 py-2 text-sm text-slate-100 outline-none transition duration-200;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .glass-input:focus {
+    @apply border-sky-300/80;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      0 0 0 2px rgba(56, 189, 248, 0.22);
+  }
+
+  .glass-button-primary {
+    @apply w-full rounded-xl bg-sky-300 px-4 py-2 text-sm font-semibold text-slate-950 transition duration-200 hover:bg-sky-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .glass-button-secondary {
+    @apply rounded-xl bg-emerald-300 px-4 py-2 text-sm font-semibold text-slate-950 transition duration-200 hover:bg-emerald-200 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .glass-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.55) transparent;
+  }
+
+  .glass-scroll::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .glass-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: rgba(148, 163, 184, 0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

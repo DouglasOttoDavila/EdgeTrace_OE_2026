@@ -27,6 +27,14 @@ const normalizeN8nOutput = (output) => {
   }
 
   if (Array.isArray(output)) {
+    const hasStructuredObjects = output.some(
+      (item) => item && typeof item === "object" && !Array.isArray(item) && typeof item.output !== "string"
+    );
+
+    if (hasStructuredObjects) {
+      return JSON.stringify(output, null, 2);
+    }
+
     const parts = output.map((item) => {
       if (typeof item === "string") {
         return item;
@@ -42,6 +50,10 @@ const normalizeN8nOutput = (output) => {
 
   if (output && typeof output.output === "string") {
     return output.output;
+  }
+
+  if (output && typeof output === "object") {
+    return JSON.stringify(output, null, 2);
   }
 
   return "";
@@ -61,9 +73,17 @@ const runJiraToTestrail = async (options) => {
   const jiraId = options.jiraId;
   const n8nWebhookUrl = options.n8nWebhookUrl || process.env.N8N_WEBHOOK_URL || DEFAULTS.n8nWebhookUrl;
   const outputDir = options.outputDir || process.env.N8N_OUTPUT_DIR || "data/n8n";
+  const timeoutMs =
+    options.timeoutMs ??
+    (process.env.N8N_TIMEOUT_MS ? Number(process.env.N8N_TIMEOUT_MS) : undefined);
+  const retries =
+    options.retries ??
+    (process.env.N8N_RETRIES ? Number(process.env.N8N_RETRIES) : undefined);
 
   const n8nOutput = await postAnalyzeJiraIssue(jiraId, {
     n8nWebhookUrl,
+    timeoutMs,
+    retries,
     logger
   });
 

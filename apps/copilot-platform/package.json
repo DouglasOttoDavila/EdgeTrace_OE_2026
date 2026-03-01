@@ -1,0 +1,35 @@
+{
+  "name": "copilot-platform",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "worker": "tsx worker.ts",
+    "clean:jobs": "node scripts/clean-jobs.cjs finished",
+    "clean:jobs:all": "node scripts/clean-jobs.cjs all"
+  },
+  "dependencies": {
+    "@github/copilot-sdk": "^0.1.29",
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^17.3.1",
+    "next": "^15.3.5",
+    "oe_ai_training_2026": "file:../..",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "zod": "^4.1.5"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^24.3.0",
+    "@types/react": "^19.1.11",
+    "@types/react-dom": "^19.1.7",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
