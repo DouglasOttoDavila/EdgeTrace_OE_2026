@@ -11,7 +11,7 @@ const createJobSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("generate_automation"),
-    caseIds: z.array(z.string().regex(/^C\d+$/)).min(1)
+    caseIds: z.array(z.string().regex(/^C\d+$/)).length(1)
   })
 ]);
 
@@ -27,6 +27,26 @@ export async function POST(request: Request) {
       { error: "Invalid request payload", details: parsed.error.flatten() },
       { status: 400 }
     );
+  }
+
+  if (parsed.data.type === "generate_automation") {
+    const caseId = parsed.data.caseIds[0];
+    const activeJob = listJobs().find(
+      (job) =>
+        job.type === "generate_automation" &&
+        (job.status === "queued" || job.status === "running") &&
+        (job.payload.caseIds || []).includes(caseId)
+    );
+
+    if (activeJob) {
+      return NextResponse.json(
+        {
+          error: `Automation generation is already queued or running for case ${caseId}.`,
+          activeJobId: activeJob.id
+        },
+        { status: 409 }
+      );
+    }
   }
 
   const payload = parsed.data.type === "generate_test_cases"

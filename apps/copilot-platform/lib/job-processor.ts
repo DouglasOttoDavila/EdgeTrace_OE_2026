@@ -771,7 +771,7 @@ const runGenerateAutomation = async (jobId: string) => {
     >([
       runCopilotWorkflow({
         workflowType: "generate_automation",
-        userInput: `caseIds: [${job.payload.caseIds.join(", ")}]`
+        userInput: `caseIds: ${JSON.stringify(job.payload.caseIds)}`
       }).then((result) => ({ kind: "success", result } as const)),
       new Promise<{ kind: "timeout" }>((resolve) => {
         setTimeout(() => resolve({ kind: "timeout" }), timeoutMs + 5000);

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 type WorkflowJob = {
@@ -71,12 +72,121 @@ const artifactUrl = (relativePath: string) => {
   return `/api/artifacts/file/${encodedPath}`;
 };
 
+const testrailBaseUrl = (process.env.NEXT_PUBLIC_TESTRAIL_BASE_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+
+const testrailCaseUrl = (caseId?: string) => {
+  if (!caseId || !testrailBaseUrl) {
+    return null;
+  }
+
+  const numericCaseId = caseId.replace(/^\D+/u, "");
+  if (!numericCaseId) {
+    return null;
+  }
+
+  return `${testrailBaseUrl}/index.php?/cases/view/${encodeURIComponent(
+    numericCaseId
+  )}`;
+};
+
+type GeneratedCaseRow = {
+  title: string;
+  refs: string;
+  testrailCaseId?: string;
+};
+
+const GeneratedCasesTable = (props: {
+  jobId: string;
+  generatedCases: GeneratedCaseRow[];
+  canGenerateAutomation: boolean;
+  onGenerateAutomation: (caseId: string) => void;
+  isCaseBusy: (caseId?: string) => boolean;
+}) => {
+  return (
+    <div className="glass-subpanel glass-scroll mt-4 overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="border-b border-white/10 text-left text-slate-300">
+            <th className="px-3 py-2">Case ID</th>
+            <th className="px-3 py-2">Title</th>
+            <th className="px-3 py-2">Refs</th>
+            <th className="px-3 py-2">Automation</th>
+          </tr>
+        </thead>
+        <tbody>
+          {props.generatedCases.map((testCase, index) => {
+            const caseUrl = testrailCaseUrl(testCase.testrailCaseId);
+            const isBusy = props.isCaseBusy(testCase.testrailCaseId);
+            const canGenerateThisCase =
+              props.canGenerateAutomation &&
+              Boolean(testCase.testrailCaseId) &&
+              !isBusy;
+
+            return (
+              <tr
+                key={`${props.jobId}-${testCase.testrailCaseId || testCase.title}-${index}`}
+                className="border-b border-white/10 text-slate-100"
+              >
+                <td className="px-3 py-2 font-mono text-sky-200">
+                  {testCase.testrailCaseId ? (
+                    caseUrl ? (
+                      <a
+                        href={caseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline decoration-sky-300/50 underline-offset-2 transition hover:text-sky-100"
+                      >
+                        {testCase.testrailCaseId}
+                      </a>
+                    ) : (
+                      testCase.testrailCaseId
+                    )
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td className="px-3 py-2">{testCase.title}</td>
+                <td className="px-3 py-2 text-slate-200">{testCase.refs}</td>
+                <td className="px-3 py-2">
+                  <button
+                    className="glass-button-secondary px-3 py-1 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={() => {
+                      if (testCase.testrailCaseId) {
+                        props.onGenerateAutomation(testCase.testrailCaseId);
+                      }
+                    }}
+                    disabled={!canGenerateThisCase}
+                    title={
+                      !testCase.testrailCaseId
+                        ? "No TestRail case ID available"
+                        : !props.canGenerateAutomation
+                        ? "Test case generation job must be completed"
+                        : isBusy
+                        ? "Automation generation is already queued/running for this case"
+                        : "Generate automation for this case"
+                    }
+                  >
+                    {isBusy ? "Generating..." : "Generate Automation"}
+                  </button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
 export default function HomePage() {
   const [jiraId, setJiraId] = useState("WORKSHOP26-1");
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [pendingAutomationCaseIds, setPendingAutomationCaseIds] = useState<string[]>([]);
 
   const loadJobs = async () => {
     const response = await fetch("/api/jobs", { cache: "no-store" });
@@ -109,13 +219,22 @@ export default function HomePage() {
     [jobs]
   );
 
-  const latestSyncedCaseIds = useMemo(
-    () =>
-      latestTestCaseJob?.payload.generatedCases
-        ?.map((testCase) => testCase.testrailCaseId)
-        .filter((item): item is string => Boolean(item)) ?? [],
-    [latestTestCaseJob]
-  );
+  const queuedOrRunningAutomationCaseIds = useMemo(() => {
+    const activeCaseIds = new Set<string>();
+
+    for (const job of jobs) {
+      if (
+        job.type === "generate_automation" &&
+        (job.status === "queued" || job.status === "running")
+      ) {
+        for (const caseId of job.payload.caseIds ?? []) {
+          activeCaseIds.add(caseId);
+        }
+      }
+    }
+
+    return activeCaseIds;
+  }, [jobs]);
 
   const triggerCaseGeneration = async () => {
     setIsSubmitting(true);
@@ -140,18 +259,22 @@ export default function HomePage() {
     }
   };
 
-  const triggerAutomationGeneration = async (caseIds: string[]) => {
+  const triggerAutomationGeneration = async (caseId: string) => {
     setError(null);
-    if (caseIds.length === 0) {
-      setError("No synced TestRail case IDs are available yet. Verify TestRail sync before triggering automation.");
+    if (!caseId) {
+      setError("No synced TestRail case ID is available yet. Verify TestRail sync before triggering automation.");
       return;
     }
+
+    setPendingAutomationCaseIds((previous) =>
+      previous.includes(caseId) ? previous : [...previous, caseId]
+    );
 
     try {
       const response = await fetch("/api/jobs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "generate_automation", caseIds })
+        body: JSON.stringify({ type: "generate_automation", caseIds: [caseId] })
       });
 
       if (!response.ok) {
@@ -162,7 +285,22 @@ export default function HomePage() {
       await loadJobs();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unknown error");
+    } finally {
+      setPendingAutomationCaseIds((previous) =>
+        previous.filter((pendingCaseId) => pendingCaseId !== caseId)
+      );
     }
+  };
+
+  const isAutomationBusyForCase = (caseId?: string) => {
+    if (!caseId) {
+      return false;
+    }
+
+    return (
+      pendingAutomationCaseIds.includes(caseId) ||
+      queuedOrRunningAutomationCaseIds.has(caseId)
+    );
   };
 
   const deleteJobById = async (jobId: string) => {
@@ -194,17 +332,38 @@ export default function HomePage() {
   return (
     <main className="min-h-screen px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
       <div className="mx-auto max-w-7xl space-y-6">
-        <header className="glass-panel p-6 sm:p-8">
-          <p className="glass-chip mb-4 inline-flex border-sky-200/30 bg-sky-300/15 text-sky-100">
-            Live Workflow Console
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-            EdgeTrace
-          </h1>
-          <p className="mt-3 max-w-3xl text-sm text-slate-200 sm:text-base">
-            Trigger Jira-based test case generation, sync with TestRail, launch
-            automation generation, and monitor execution evidence.
-          </p>
+        <header className="glass-panel relative overflow-hidden p-6 sm:p-8">
+          <div className="pr-36 sm:pr-44 md:pr-56 lg:pr-64">
+            <p className="glass-chip mb-4 inline-flex border-sky-200/30 bg-sky-300/15 text-sky-100">
+              Live Workflow Console
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              EdgeTrace
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm text-slate-200 sm:text-base">
+              Trigger Jira-based test case generation, sync with TestRail, launch
+              automation generation, and monitor execution evidence.
+            </p>
+          </div>
+
+          <div className="pointer-events-none absolute inset-y-6 right-6 flex items-center gap-2 sm:inset-y-8 sm:right-8 sm:gap-3">
+            <Image
+              src="/branding/oe_logo.png"
+              alt="Object Edge logo"
+              width={1696}
+              height={1655}
+              priority
+              className="h-full w-auto object-contain"
+            />
+            <Image
+              src="/branding/edgetrace-logo.png"
+              alt="EdgeTrace logo"
+              width={640}
+              height={640}
+              priority
+              className="h-full w-auto object-contain"
+            />
+          </div>
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[1fr_2fr]">
@@ -243,52 +402,13 @@ export default function HomePage() {
             {!latestTestCaseJob?.payload.generatedCases?.length ? (
               <p className="mt-3 text-sm text-slate-300">No generated test cases yet.</p>
             ) : (
-              <>
-                <div className="glass-subpanel glass-scroll mt-4 overflow-x-auto">
-                  <table className="min-w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-white/10 text-left text-slate-300">
-                        <th className="px-3 py-2">Case ID</th>
-                        <th className="px-3 py-2">Title</th>
-                        <th className="px-3 py-2">Refs</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {latestTestCaseJob.payload.generatedCases.map((testCase) => (
-                        <tr
-                          key={`${latestTestCaseJob.id}-${testCase.title}`}
-                          className="border-b border-white/10 text-slate-100"
-                        >
-                          <td className="px-3 py-2 font-mono text-sky-200">
-                            {testCase.testrailCaseId || "-"}
-                          </td>
-                          <td className="px-3 py-2">{testCase.title}</td>
-                          <td className="px-3 py-2 text-slate-200">{testCase.refs}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                <button
-                  className="glass-button-secondary mt-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300/80 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
-                  onClick={() => triggerAutomationGeneration(latestSyncedCaseIds)}
-                  disabled={
-                    latestTestCaseJob.status !== "completed" ||
-                    latestSyncedCaseIds.length === 0
-                  }
-                >
-                  Trigger Automation Code Generation
-                </button>
-
-                {latestTestCaseJob.status === "completed" &&
-                latestSyncedCaseIds.length === 0 ? (
-                  <p className="mt-2 text-xs text-amber-200">
-                    No TestRail case IDs were created for this run. Check TestRail
-                    credentials/access and retry.
-                  </p>
-                ) : null}
-              </>
+              <GeneratedCasesTable
+                jobId={latestTestCaseJob.id}
+                generatedCases={latestTestCaseJob.payload.generatedCases}
+                canGenerateAutomation={latestTestCaseJob.status === "completed"}
+                onGenerateAutomation={triggerAutomationGeneration}
+                isCaseBusy={isAutomationBusyForCase}
+              />
             )}
           </div>
         </section>
@@ -325,6 +445,25 @@ export default function HomePage() {
               </div>
 
               <p className="mt-2 text-xs text-slate-300">Job ID: {job.id}</p>
+
+              {job.type === "generate_test_cases" ? (
+                <div className="mt-4">
+                  <p className="text-sm text-slate-200">Generated Test Cases</p>
+                  {!job.payload.generatedCases?.length ? (
+                    <p className="mt-2 text-sm text-slate-300">
+                      No generated test cases in this run.
+                    </p>
+                  ) : (
+                    <GeneratedCasesTable
+                      jobId={job.id}
+                      generatedCases={job.payload.generatedCases}
+                      canGenerateAutomation={job.status === "completed"}
+                      onGenerateAutomation={triggerAutomationGeneration}
+                      isCaseBusy={isAutomationBusyForCase}
+                    />
+                  )}
+                </div>
+              ) : null}
 
               {job.payload.automationMetrics ? (
                 <div className="mt-4 grid grid-cols-2 gap-3 text-center text-xs sm:grid-cols-4">
@@ -489,4 +628,3 @@ export default function HomePage() {
     </main>
   );
 }
-
