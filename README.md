@@ -1,14 +1,10 @@
 # EdgeTrace
-
-**From Jira intent to executed automation evidence, without handoffs.**
-
-<img src="./apps/copilot-platform/public/branding/edgetrace-logo.png" width="auto" height="200">  <img src="./apps/copilot-platform/public/branding/oe_logo.png" width="auto" height="190">
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/7NmZi1ixkUw?si=lYY0D1fA79ZbonmM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-
-![EdgeTrace Architecture](./EdgeTrace%20-%20screenshot.jpg)
-
 EdgeTrace is an AI-first quality engineering platform that transforms requirements into test intelligence and working automation. It combines **n8n workflow orchestration**, **Copilot SDK-driven agents**, **TestRail synchronization**, and **Playwright execution** into one continuous, production-minded pipeline.
+
+## Watch the Demo
+<a href="https://www.youtube.com/watch?v=7NmZi1ixkUw" target="_blank" rel="noopener noreferrer"><img width="auto" height="775" alt="miniature_video" src="https://github.com/user-attachments/assets/c154ff2f-4af1-4d0f-be6c-7ea776d4fa9b" /></a>
+
+![EdgeTrace Architecture](./EdgeTrace%20-%20screenshot.jpg) 
 
 ## Why EdgeTrace
 
